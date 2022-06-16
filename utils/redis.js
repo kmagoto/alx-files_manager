@@ -1,27 +1,34 @@
-// Redis documentation https://github.com/NodeRedis/node-redis
-
 const redis = require('redis');
 const { promisify } = require('util');
 
 class RedisClient {
   constructor() {
     this.client = redis.createClient();
+    this.getAsync = promisify(this.client.get).bind(this.client);
+
+    this.client.on('error', (error) => {
+      console.log(`Redis client not connected to the server: ${error}`);
+    });
   }
+
   isAlive() {
     return this.client.connected;
   }
+
   async get(key) {
-    const getAsnc = promisify(this.client.get).bind(this.client);
-    const value = await getAsnc(key);
+    const value = await this.getAsync(key);
     return value;
   }
+
   async set(key, value, duration) {
-    await this.client.set(key, value);
-    await this.client.expire(key, duration);
+    this.client.set(key, value);
+    this.client.expire(key, duration);
   }
+
   async del(key) {
-    await this.client.del(key);
+    this.client.del(key);
   }
 }
+
 const redisClient = new RedisClient();
-module.exports = redisClient;
+export default redisClient;
